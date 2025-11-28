@@ -30,7 +30,9 @@ def main():
     processes.append(mp.Process(target=run_http, args=(config,), name="HTTP Server"))
 
     if config.mqtt_enabled == 1:
-        processes.append(mp.Process(target=run_mqtt, args=(config,), name="MQTT Server"))
+        processes.append(
+            mp.Process(target=run_mqtt, args=(config,), name="MQTT Server")
+        )
 
     for p in processes:
         p.start()

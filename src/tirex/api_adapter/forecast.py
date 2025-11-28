@@ -33,7 +33,9 @@ def _format_output(
         try:
             from .gluon import format_gluonts_output
         except ImportError:
-            raise ValueError("output_type glutonts needs GluonTs but GluonTS is not available (not installed)!")
+            raise ValueError(
+                "output_type glutonts needs GluonTs but GluonTS is not available (not installed)!"
+            )
         return format_gluonts_output(quantiles, means, sample_meta)
     else:
         raise ValueError(f"Invalid output type: {output_type}")
@@ -50,7 +52,9 @@ def _pad_time_series_batch(
     dtype = first.dtype if first.is_floating_point() else torch.float32
     device = first.device
 
-    padded = torch.full((len(batch_series), max_length), float("nan"), dtype=dtype, device=device)
+    padded = torch.full(
+        (len(batch_series), max_length), float("nan"), dtype=dtype, device=device
+    )
 
     for idx, series in enumerate(batch_series):
         series = series.to(padded.dtype)
@@ -116,7 +120,9 @@ def _resample_fc_func_wrapper(
 
     # Compute per-item required horizons (in downsampled domain)
     per_item_pred_lens = [int(ceil(prediction_length * sf)) for sf in scaling_factors]
-    max_pred_len = max(per_item_pred_lens) if per_item_pred_lens else int(prediction_length)
+    max_pred_len = (
+        max(per_item_pred_lens) if per_item_pred_lens else int(prediction_length)
+    )
     predict_kwargs.update(prediction_length=max_pred_len)
 
     max_ts_length = max(ts.shape[0] for ts in batch_resampled_ts)
@@ -128,13 +134,17 @@ def _resample_fc_func_wrapper(
 
     batch_prediction_q = []
     batch_prediction_m = []
-    for el_q, el_m, fc_resample_fn, item_pred_len in zip(fc_quantiles, fc_mean, fc_resample_fns, per_item_pred_lens):
+    for el_q, el_m, fc_resample_fn, item_pred_len in zip(
+        fc_quantiles, fc_mean, fc_resample_fns, per_item_pred_lens
+    ):
         # truncate the forecasts to their individual sample factor adjusted prediction lengths
         el_q = el_q[:item_pred_len, ...]  # [T, Q]
         el_m = el_m[:item_pred_len]  # [T]
 
         # upsample prediction
-        quantiles = fc_resample_fn(el_q.squeeze(0).transpose(0, 1)).transpose(0, 1)  # [T, Q]
+        quantiles = fc_resample_fn(el_q.squeeze(0).transpose(0, 1)).transpose(
+            0, 1
+        )  # [T, Q]
         mean = fc_resample_fn(el_m.squeeze(0))
 
         quantiles = quantiles[:prediction_length, ...]
@@ -143,7 +153,9 @@ def _resample_fc_func_wrapper(
         batch_prediction_q.append(quantiles)
         batch_prediction_m.append(mean)
 
-    return torch.stack(batch_prediction_q, dim=0), torch.stack(batch_prediction_m, dim=0)
+    return torch.stack(batch_prediction_q, dim=0), torch.stack(
+        batch_prediction_m, dim=0
+    )
 
 
 def _gen_forecast(
@@ -159,7 +171,9 @@ def _gen_forecast(
 
     if resample_strategy is not None:
         if resample_strategy not in RESAMPLE_STRATEGIES:
-            raise ValueError(f"Invalid resample strategy: {resample_strategy}. Allowed: {RESAMPLE_STRATEGIES}")
+            raise ValueError(
+                f"Invalid resample strategy: {resample_strategy}. Allowed: {RESAMPLE_STRATEGIES}"
+            )
         fc_func = partial(
             _resample_fc_func_wrapper,
             base_fc_func,
@@ -319,7 +333,9 @@ class ForecastModel(ABC):
         try:
             from .gluon import get_gluon_batches
         except ImportError:
-            raise ValueError("forecast_gluon glutonts needs GluonTs but GluonTS is not available (not installed)!")
+            raise ValueError(
+                "forecast_gluon glutonts needs GluonTs but GluonTS is not available (not installed)!"
+            )
 
         batches = get_gluon_batches(gluonDataset, batch_size, **data_kwargs)
         return _gen_forecast(

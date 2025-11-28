@@ -36,4 +36,6 @@ def test_compiled_faster():
     time_uncompiled = measure_model_execution_time(model_uncompiled)
     time_compiled = measure_model_execution_time(model_compiled)
 
-    assert time_compiled < time_uncompiled, "Compiled model has to be faster than uncompiled one!"
+    assert (
+        time_compiled < time_uncompiled
+    ), "Compiled model has to be faster than uncompiled one!"

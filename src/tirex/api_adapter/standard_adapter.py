@@ -37,7 +37,11 @@ def _batched_slice(
     total = len(full_batch)
     for start in range(0, total, batch_size):
         batch = full_batch[start : start + batch_size]
-        meta = full_meta[start : start + batch_size] if full_meta is not None else [{} for _ in range(len(batch))]
+        meta = (
+            full_meta[start : start + batch_size]
+            if full_meta is not None
+            else [{} for _ in range(len(batch))]
+        )
 
         batch_series = []
         for idx in range(len(batch)):
@@ -84,7 +88,11 @@ def get_batches(context: ContextType, batch_size: int):
         assert context.ndim == 2
         batches = _batched_slice(context, None, batch_size)
     elif isinstance(context, (list, Iterable)):
-        batches = _batch_iterable(map(lambda x: (torch.Tensor(x), None), context), batch_size)
+        batches = _batch_iterable(
+            map(lambda x: (torch.Tensor(x), None), context), batch_size
+        )
     if batches is None:
-        raise ValueError(f"Context type {type(context)} not supported! Supported Types: {ContextType}")
+        raise ValueError(
+            f"Context type {type(context)} not supported! Supported Types: {ContextType}"
+        )
     return batches

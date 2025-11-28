@@ -22,8 +22,12 @@ class sLSTMLayer(nn.Module):
         self.slstm_cell = sLSTMCell(self.config, backend)
         self.group_norm = MultiHeadLayerNorm(ndim=in_features, num_heads=num_heads)
 
-    def forward(self, x: torch.Tensor, slstm_state: torch.Tensor | None = None) -> torch.Tensor:
-        x_g = torch.cat((self.fgate(x), self.igate(x), self.zgate(x), self.ogate(x)), dim=-1)
+    def forward(
+        self, x: torch.Tensor, slstm_state: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        x_g = torch.cat(
+            (self.fgate(x), self.igate(x), self.zgate(x), self.ogate(x)), dim=-1
+        )
 
         y, slstm_state = self.slstm_cell(x_g, state=slstm_state)
 
@@ -34,12 +38,16 @@ class LinearHeadwiseExpand(nn.Module):
     def __init__(self, in_features, num_heads, expand_factor_up: float = 1):
         super().__init__()
         assert num_heads <= in_features, "num_heads must be <= in_features"
-        assert in_features % num_heads == 0, "in_features must be a multiple of num_heads"
+        assert (
+            in_features % num_heads == 0
+        ), "in_features must be a multiple of num_heads"
         self.num_heads = num_heads
 
         out_features = round(expand_factor_up * in_features)
         out_features_per_head = out_features // num_heads
-        self.weight = nn.Parameter(torch.empty(num_heads, out_features_per_head, in_features // num_heads))
+        self.weight = nn.Parameter(
+            torch.empty(num_heads, out_features_per_head, in_features // num_heads)
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shape = x.shape

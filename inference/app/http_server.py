@@ -14,7 +14,10 @@ settings = Settings()
 
 
 model: ForecastModel = load_model(
-    settings.model_path, device=settings.model_device, backend="torch", compile=settings.model_compile
+    settings.model_path,
+    device=settings.model_device,
+    backend="torch",
+    compile=settings.model_compile,
 )
 
 if settings.model_compile:
@@ -27,7 +30,9 @@ app = FastAPI(title="Tirex API")
 
 @app.exception_handler(Exception)
 async def app_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    return JSONResponse(status_code=500, content={"error_code": 500, "error_message": exc.__str__()})
+    return JSONResponse(
+        status_code=500, content={"error_code": 500, "error_message": exc.__str__()}
+    )
 
 
 class Forecast(BaseModel):
@@ -38,14 +43,18 @@ class Forecast(BaseModel):
 @app.post("/forecast/mean")
 async def predict(forecast: Forecast) -> list[list[float]]:
     context = torch.tensor(forecast.context, dtype=torch.float32)
-    _, mean = model.forecast(context=context, prediction_length=forecast.prediction_length)
+    _, mean = model.forecast(
+        context=context, prediction_length=forecast.prediction_length
+    )
     return mean.tolist()
 
 
 @app.post("/forecast/quantiles")
 async def predict(forecast: Forecast) -> list[list[list[float]]]:
     context = torch.tensor(forecast.context, dtype=torch.float32)
-    quantiles, _ = model.forecast(context=context, prediction_length=forecast.prediction_length)
+    quantiles, _ = model.forecast(
+        context=context, prediction_length=forecast.prediction_length
+    )
     return quantiles.tolist()
 
 

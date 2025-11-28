@@ -29,7 +29,9 @@ def mqtt_client():
             time.sleep(1)
 
         if client.is_connected() is False:
-            raise ConnectionRefusedError(f"Failed to connect to MQTT broker at {mqtt_host}:{mqtt_port}")
+            raise ConnectionRefusedError(
+                f"Failed to connect to MQTT broker at {mqtt_host}:{mqtt_port}"
+            )
 
     except Exception as e:
         pytest.fail(f"MQTT Broker connection failed: {e}")

@@ -8,7 +8,9 @@ import torch
 
 from tirex.models.slstm.cell import sLSTMBlockConfig, sLSTMCell
 
-pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason="This test needs CUDA.")
+pytestmark = pytest.mark.skipif(
+    not torch.cuda.is_available(), reason="This test needs CUDA."
+)
 
 
 @pytest.mark.parametrize("with_in_state", [True, False])
@@ -38,7 +40,12 @@ def test_hidden_size(hidden_size):
 
 def test_complex():
     run_slstm_torch_vs_cuda(
-        hidden_size=128, batch_size=2, sequence_length=8, num_heads=4, with_in_state=True, atol=1e-5
+        hidden_size=128,
+        batch_size=2,
+        sequence_length=8,
+        num_heads=4,
+        with_in_state=True,
+        atol=1e-5,
     )
 
 
@@ -53,16 +60,25 @@ def set_seed(seed):
 
 
 def run_slstm_torch_vs_cuda(
-    batch_size=1, sequence_length=1, with_in_state=False, num_heads=4, hidden_size=64, rtol=1.3e-6, atol=1e-6
+    batch_size=1,
+    sequence_length=1,
+    with_in_state=False,
+    num_heads=4,
+    hidden_size=64,
+    rtol=1.3e-6,
+    atol=1e-6,
 ):
     device_cuda = "cuda"
     config = sLSTMBlockConfig(embedding_dim=hidden_size, num_heads=num_heads)
 
     set_seed(42)
     recurrent_kernel_weight = torch.randn(
-        (config.num_heads, config.head_dim, config.num_gates * config.head_dim), dtype=torch.bfloat16
+        (config.num_heads, config.head_dim, config.num_gates * config.head_dim),
+        dtype=torch.bfloat16,
     )
-    bias_weight = torch.randn((config.num_heads * config.num_gates * config.head_dim), dtype=torch.bfloat16)
+    bias_weight = torch.randn(
+        (config.num_heads * config.num_gates * config.head_dim), dtype=torch.bfloat16
+    )
 
     cell_torch = sLSTMCell(copy.deepcopy(config), backend="torch")
     cell_torch._recurrent_kernel_.data = recurrent_kernel_weight
@@ -78,7 +94,8 @@ def run_slstm_torch_vs_cuda(
 
     output_torch, state_torch = cell_torch.forward(current_input, state)
     output_cuda, state_cuda = cell_cuda.forward(
-        current_input.to(device_cuda), state.to(device_cuda) if state is not None else state
+        current_input.to(device_cuda),
+        state.to(device_cuda) if state is not None else state,
     )
 
     torch.testing.assert_close(output_torch, output_cuda.cpu(), rtol=rtol, atol=atol)

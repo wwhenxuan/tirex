@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 import torch
 
-from tirex.api_adapter.forecast import ForecastModel, _format_output, _gen_forecast, get_batches
+from tirex.api_adapter.forecast import (
+    ForecastModel,
+    _format_output,
+    _gen_forecast,
+    get_batches,
+)
 
 
 def fc_random_from_tensor(batch, prediction_length, **kwargs):
@@ -52,7 +57,9 @@ def test_format_output_shapes(dummy_fc_func):
 def test_gen_forecast_single_batch(dummy_fc_func):
     context = torch.rand((5, 20))
     batches = get_batches(context, batch_size=2)
-    q, m = _gen_forecast(dummy_fc_func, batches, "torch", prediction_length=10, yield_per_batch=False)
+    q, m = _gen_forecast(
+        dummy_fc_func, batches, "torch", prediction_length=10, yield_per_batch=False
+    )
     assert q.shape == (5, 10, 9)
     assert m.shape == (5, 10)
 
@@ -60,7 +67,9 @@ def test_gen_forecast_single_batch(dummy_fc_func):
 def test_gen_forecast_iterator(dummy_fc_func):
     context = torch.rand((5, 20))
     batches = get_batches(context, batch_size=2)
-    iterator = _gen_forecast(dummy_fc_func, batches, "torch", prediction_length=10, yield_per_batch=True)
+    iterator = _gen_forecast(
+        dummy_fc_func, batches, "torch", prediction_length=10, yield_per_batch=True
+    )
     outputs = list(iterator)
     assert len(outputs) == 3
     for i, (q, m) in enumerate(outputs):
@@ -76,7 +85,9 @@ def test_gen_forecast_iterator(dummy_fc_func):
 def test_forecast_with_variable_lengths():
     model = DummyForecaster()
     context = [torch.arange(4), torch.arange(7), torch.arange(5), torch.arange(3)]
-    out_q, out_m = model.forecast(context, output_type="torch", prediction_length=10, batch_size=3)
+    out_q, out_m = model.forecast(
+        context, output_type="torch", prediction_length=10, batch_size=3
+    )
     assert out_q.shape == (4, 10, 9)
     assert out_m.shape == (4, 10)
 
@@ -84,7 +95,13 @@ def test_forecast_with_variable_lengths():
 def test_forecast_iterator_mode():
     model = DummyForecaster()
     context = torch.rand((5, 20))
-    iterator = model.forecast(context, yield_per_batch=True, output_type="torch", prediction_length=10, batch_size=2)
+    iterator = model.forecast(
+        context,
+        yield_per_batch=True,
+        output_type="torch",
+        prediction_length=10,
+        batch_size=2,
+    )
     results = list(iterator)
     assert len(results) == 3
     for i, (q, m) in enumerate(results):

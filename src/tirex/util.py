@@ -16,7 +16,9 @@ def frequency_resample(
     prediction_length: int,
     patch_size: int = 64,
     peak_prominence: float = 0.1,
-    selection_method: Literal["low_harmonic", "high_harmonic", "highest_amplitude"] = "low_harmonic",
+    selection_method: Literal[
+        "low_harmonic", "high_harmonic", "highest_amplitude"
+    ] = "low_harmonic",
     min_period: int | None = None,
     max_period: int = 1000,
     bandpass_filter: bool = True,
@@ -101,7 +103,9 @@ def frequency_factor(
     ts: torch.Tensor,
     patch_size: int = 64,  # This doesn't have to match model patch size, but rather the 'target frequency'
     peak_prominence: float = 0.1,
-    selection_method: Literal["low_harmonic", "high_harmonic", "highest_amplitude"] = "low_harmonic",
+    selection_method: Literal[
+        "low_harmonic", "high_harmonic", "highest_amplitude"
+    ] = "low_harmonic",
     min_period: int | None = None,
     max_period: int = 1000,
     bandpass_filter: bool = True,
@@ -167,7 +171,9 @@ def frequency_factor(
         min_period = patch_size
 
     # Ensure CPU numpy array for FFT analysis
-    ts_np = ts.detach().cpu().numpy() if isinstance(ts, torch.Tensor) else np.asarray(ts)
+    ts_np = (
+        ts.detach().cpu().numpy() if isinstance(ts, torch.Tensor) else np.asarray(ts)
+    )
 
     # NOTE: If the series is shorter than max_period *2, FFT may not be accurate, to avoid detecting these peaks, we don't scale
     if ts_np.size < max_period * 2:
@@ -226,7 +232,9 @@ def frequency_factor(
 
     # nearest interger fraction rounding (nifr)
     if nifr_enabled:
-        int_fractions = np.concatenate([[1], 1 / np.arange(nifr_start_integer, nifr_end_integer + 1)])
+        int_fractions = np.concatenate(
+            [[1], 1 / np.arange(nifr_start_integer, nifr_end_integer + 1)]
+        )
         diff = np.abs(factor - int_fractions)
         min_diff_idc = np.argmin(diff)
         factor = int_fractions[min_diff_idc]
@@ -238,7 +246,9 @@ def frequency_factor(
     return float(factor)
 
 
-def resample(ts: torch.Tensor, sample_rate: float, window_position: str = "center") -> torch.Tensor:
+def resample(
+    ts: torch.Tensor, sample_rate: float, window_position: str = "center"
+) -> torch.Tensor:
     """
     Resample the time series using NaN-tolerant window averaging with size 1/sample_rate.
 
@@ -277,7 +287,9 @@ def resample(ts: torch.Tensor, sample_rate: float, window_position: str = "cente
 
     # Do not change coordinate creation logic
     src_coords = torch.arange(src_num_timesteps, device=ts.device)
-    tgt_coords = torch.linspace(0, src_num_timesteps - 1, tgt_num_timesteps, device=ts.device)
+    tgt_coords = torch.linspace(
+        0, src_num_timesteps - 1, tgt_num_timesteps, device=ts.device
+    )
 
     if sample_rate == 1:
         return ts.to(torch.float)
@@ -298,7 +310,9 @@ def resample(ts: torch.Tensor, sample_rate: float, window_position: str = "cente
         offset = tgt_coords - src_coords[tgt_in_src_idx_lo]
 
         # Allocate output
-        tgt_values = torch.empty(*ts.shape[:-1], tgt_num_timesteps, dtype=torch.float, device=ts.device)
+        tgt_values = torch.empty(
+            *ts.shape[:-1], tgt_num_timesteps, dtype=torch.float, device=ts.device
+        )
 
         # Masks
         exact_mask = dist == 0
@@ -311,7 +325,9 @@ def resample(ts: torch.Tensor, sample_rate: float, window_position: str = "cente
         # Linear interpolate where indices differ
         if interp_mask.any():
             tgt_values[..., interp_mask] = (
-                diff[..., interp_mask] / dist[interp_mask].to(torch.float) * offset[interp_mask]
+                diff[..., interp_mask]
+                / dist[interp_mask].to(torch.float)
+                * offset[interp_mask]
                 + src_lo_vals[..., interp_mask]
             )
 
@@ -380,14 +396,20 @@ def resample(ts: torch.Tensor, sample_rate: float, window_position: str = "cente
     r_plus1_exp = _expand_index(r_plus1)
     l_exp = _expand_index(l_idx)
 
-    seg_sums = cumsum_vals.gather(dim=-1, index=r_plus1_exp) - cumsum_vals.gather(dim=-1, index=l_exp)
-    seg_cnts = cumsum_cnts.gather(dim=-1, index=r_plus1_exp) - cumsum_cnts.gather(dim=-1, index=l_exp)
+    seg_sums = cumsum_vals.gather(dim=-1, index=r_plus1_exp) - cumsum_vals.gather(
+        dim=-1, index=l_exp
+    )
+    seg_cnts = cumsum_cnts.gather(dim=-1, index=r_plus1_exp) - cumsum_cnts.gather(
+        dim=-1, index=l_exp
+    )
 
     # Compute nan-mean: where count==0 -> NaN
     with torch.no_grad():
         safe_cnts = torch.where(seg_cnts > 0, seg_cnts, torch.ones_like(seg_cnts))
     averages = seg_sums / safe_cnts
-    averages = torch.where(seg_cnts > 0, averages, torch.full_like(averages, float("nan")))
+    averages = torch.where(
+        seg_cnts > 0, averages, torch.full_like(averages, float("nan"))
+    )
 
     return averages
 
@@ -559,7 +581,9 @@ def custom_find_peaks(
     if len(spec) < 5:  # Need at least 5 points to exclude last two bins
         return np.array([], dtype=int)
 
-    if bandpass_filter:  # only truly filter low frequencies, high frequencies are dealt with later
+    if (
+        bandpass_filter
+    ):  # only truly filter low frequencies, high frequencies are dealt with later
         min_freq = 1 / max_period
         freq_mask = f >= min_freq
         spec = spec * freq_mask
@@ -602,7 +626,9 @@ def custom_find_peaks(
 
     # Sort by height and return the top `max_peaks`
     period_filtered_peaks.sort(key=lambda x: x[1], reverse=True)
-    peak_indices = np.array([p[0] for p in period_filtered_peaks[:max_peaks]], dtype=int)
+    peak_indices = np.array(
+        [p[0] for p in period_filtered_peaks[:max_peaks]], dtype=int
+    )
 
     return peak_indices
 
@@ -621,9 +647,11 @@ def select_quantile_subset(quantiles: torch.Tensor, quantile_levels: list[float]
     Select specified quantile levels from the quantiles.
     """
     trained_quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    assert set(quantile_levels).issubset(trained_quantiles), (
-        f"Only the following quantile_levels are supported: {quantile_levels}"
-    )
+    assert set(quantile_levels).issubset(
+        trained_quantiles
+    ), f"Only the following quantile_levels are supported: {quantile_levels}"
     quantile_levels_idx = [trained_quantiles.index(q) for q in quantile_levels]
-    quantiles_idx = torch.tensor(quantile_levels_idx, dtype=torch.long, device=quantiles.device)
+    quantiles_idx = torch.tensor(
+        quantile_levels_idx, dtype=torch.long, device=quantiles.device
+    )
     return torch.index_select(quantiles, dim=-1, index=quantiles_idx).squeeze(-1)

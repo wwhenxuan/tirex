@@ -21,12 +21,18 @@ def eval_task(model, task):
     inference_time = 0.0
     predictions_per_window = []
     for window in task.iter_windows(trust_remote_code=True):
-        past_data, _ = fev.convert_input_data(window, adapter="datasets", as_univariate=True)
-        past_data = past_data.with_format("torch").cast_column("target", datasets.Sequence(datasets.Value("float32")))
+        past_data, _ = fev.convert_input_data(
+            window, adapter="datasets", as_univariate=True
+        )
+        past_data = past_data.with_format("torch").cast_column(
+            "target", datasets.Sequence(datasets.Value("float32"))
+        )
         loaded_targets = [t for t in past_data["target"]]
 
         start_time = time.monotonic()
-        quantiles, means = model.forecast(loaded_targets, prediction_length=task.horizon)
+        quantiles, means = model.forecast(
+            loaded_targets, prediction_length=task.horizon
+        )
         inference_time += time.monotonic() - start_time
 
         predictions_dict = {"predictions": means}
@@ -36,7 +42,8 @@ def eval_task(model, task):
 
         predictions_per_window.append(
             fev.combine_univariate_predictions_to_multivariate(
-                datasets.Dataset.from_dict(predictions_dict), target_columns=task.target_columns
+                datasets.Dataset.from_dict(predictions_dict),
+                target_columns=task.target_columns,
             )
         )
 
@@ -64,8 +71,12 @@ def test_chronos_single(tirex_model, benchmark):
         inference_time_s=inference_time,
     )
 
-    assert evaluation_summary["WQL"] < 0.055, "WQL on the electricity task needs to be less than 0.055"
-    assert evaluation_summary["MASE"] < 0.99, "MASE on the electricity task needs to be less than 0.99"
+    assert (
+        evaluation_summary["WQL"] < 0.055
+    ), "WQL on the electricity task needs to be less than 0.055"
+    assert (
+        evaluation_summary["MASE"] < 0.99
+    ), "MASE on the electricity task needs to be less than 0.99"
 
 
 @pytest.mark.skipif(
@@ -99,5 +110,9 @@ def test_chronos_all(tirex_model, benchmark):
     tolerance = 0.01
 
     # Values from Tirex paper: https://arxiv.org/pdf/2505.23719
-    assert agg_wql / agg_wql_baseline < 0.59 + tolerance, "WQL on chromos needs to be less than 0.60"
-    assert agg_mase / agg_mase_baseline < 0.78 + tolerance, "MASE on chromos needs to be less than 0.79"
+    assert (
+        agg_wql / agg_wql_baseline < 0.59 + tolerance
+    ), "WQL on chromos needs to be less than 0.60"
+    assert (
+        agg_mase / agg_mase_baseline < 0.78 + tolerance
+    ), "MASE on chromos needs to be less than 0.79"

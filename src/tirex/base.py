@@ -53,7 +53,13 @@ class PretrainedModel(ABC):
 
     @classmethod
     def from_pretrained(
-        cls: type[T], path: str, backend: str, device: str | None = None, compile=False, hf_kwargs=None, ckp_kwargs=None
+        cls: type[T],
+        path: str,
+        backend: str,
+        device: str | None = None,
+        compile=False,
+        hf_kwargs=None,
+        ckp_kwargs=None,
     ) -> T:
         if hf_kwargs is None:
             hf_kwargs = {}
@@ -66,10 +72,14 @@ class PretrainedModel(ABC):
             checkpoint_path = path
         else:
             repo_id = parse_hf_repo_id(path)
-            checkpoint_path = hf_hub_download(repo_id=repo_id, filename="model.ckpt", **hf_kwargs)
+            checkpoint_path = hf_hub_download(
+                repo_id=repo_id, filename="model.ckpt", **hf_kwargs
+            )
 
         # load lightning checkpoint
-        checkpoint = torch.load(checkpoint_path, map_location=device, **ckp_kwargs, weights_only=True)
+        checkpoint = torch.load(
+            checkpoint_path, map_location=device, **ckp_kwargs, weights_only=True
+        )
         model: T = cls(backend=backend, **checkpoint["hyper_parameters"])
         model.on_load_checkpoint(checkpoint)
         model.load_state_dict(checkpoint["state_dict"])
@@ -78,7 +88,9 @@ class PretrainedModel(ABC):
         if compile and backend == "torch":
             compiled_slstm_forward = torch.compile(sLSTMCellTorch.slstm_forward)
             for block in model.blocks:
-                block.slstm_layer.slstm_cell._impl_forward_torch = compiled_slstm_forward
+                block.slstm_layer.slstm_cell._impl_forward_torch = (
+                    compiled_slstm_forward
+                )
         return model
 
     @classmethod
@@ -128,5 +140,10 @@ def load_model(
         raise ValueError(f"Invalid model id {model_id}")
 
     return model_cls.from_pretrained(
-        path, device=device, backend=backend, compile=compile, hf_kwargs=hf_kwargs, ckp_kwargs=ckp_kwargs
+        path,
+        device=device,
+        backend=backend,
+        compile=compile,
+        hf_kwargs=hf_kwargs,
+        ckp_kwargs=ckp_kwargs,
     )

@@ -154,7 +154,9 @@ def test_pad_time_series_batch_left_pad_with_nan():
 
 
 def test_pad_time_series_batch_preserves_dtype_and_device():
-    series_list = [torch.tensor([1, 2, 3], dtype=torch.int64, device=torch.device("cpu"))]
+    series_list = [
+        torch.tensor([1, 2, 3], dtype=torch.int64, device=torch.device("cpu"))
+    ]
     padded = _pad_time_series_batch(series_list, max_length=4)
     assert padded.dtype == torch.float32  # cast to float for NaN support
     assert padded.device == torch.device("cpu")

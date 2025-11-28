@@ -28,19 +28,31 @@ class sLSTMBlockConfig:
 class sLSTMCell(nn.Module):
     def __init__(self, config: sLSTMBlockConfig, backend: Literal["torch", "cuda"]):
         super().__init__()
-        assert backend in ["torch", "cuda"], f"Backend can either be torch or cuda, not {backend}!"
+        assert backend in [
+            "torch",
+            "cuda",
+        ], f"Backend can either be torch or cuda, not {backend}!"
         self.config = config
         self.backend = backend
 
         self._recurrent_kernel_ = nn.Parameter(
-            torch.empty((config.num_heads, config.head_dim, config.num_gates * config.head_dim), dtype=None)
+            torch.empty(
+                (config.num_heads, config.head_dim, config.num_gates * config.head_dim),
+                dtype=None,
+            )
         )
 
-        self._bias_ = nn.Parameter(torch.empty((config.num_heads * config.num_gates * config.head_dim), dtype=None))
+        self._bias_ = nn.Parameter(
+            torch.empty(
+                (config.num_heads * config.num_gates * config.head_dim), dtype=None
+            )
+        )
 
         self._impl_forward_torch = sLSTMCellTorch.slstm_forward
 
-    def forward(self, input: torch.Tensor, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, input: torch.Tensor, state: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         input = self._get_input(input)
         state = self._get_state(input, state)
 
@@ -59,7 +71,9 @@ class sLSTMCell(nn.Module):
 
         input = input.view(input.shape[0], input.shape[1], -1)
         bias = (
-            bias.reshape(self.config.num_heads, self.config.num_gates, self.config.head_dim)
+            bias.reshape(
+                self.config.num_heads, self.config.num_gates, self.config.head_dim
+            )
             .permute(1, 0, 2)
             .reshape(-1)
         )
@@ -76,13 +90,17 @@ class sLSTMCell(nn.Module):
 
         if not hasattr(self, "func"):
             try:
-                from xlstm.blocks.slstm.cell import sLSTMCellConfig as sLSTMCellConfigCuda, sLSTMCellFuncGenerator
+                from xlstm.blocks.slstm.cell import (
+                    sLSTMCellConfig as sLSTMCellConfigCuda,
+                    sLSTMCellFuncGenerator,
+                )
             except ModuleNotFoundError:
                 raise ValueError(
                     'xlstm package not found! To use the custom cuda backend, install the additional dependencies with: pip install -e ".[cuda]"'
                 )
             cuda_config = dataclass_from_dict(
-                sLSTMCellConfigCuda, {**asdict(self.config), "hidden_size": self.config.embedding_dim}
+                sLSTMCellConfigCuda,
+                {**asdict(self.config), "hidden_size": self.config.embedding_dim},
             )
             self.func = sLSTMCellFuncGenerator(False, cuda_config)
 
@@ -101,12 +119,16 @@ class sLSTMCell(nn.Module):
         return output, state
 
     def _get_input(self, x: torch.Tensor) -> torch.Tensor:
-        assert x.shape[-1] == self.config.embedding_dim * self.config.num_gates, (
-            f"Input size mismatch: Expected input size {self.config.embedding_dim * self.config.num_gates}, but got {x.size(-1)}."
-        )
-        return x.view(x.shape[0], x.shape[1], self.config.num_gates, self.config.num_heads, -1).permute(1, 0, 2, 3, 4)
+        assert (
+            x.shape[-1] == self.config.embedding_dim * self.config.num_gates
+        ), f"Input size mismatch: Expected input size {self.config.embedding_dim * self.config.num_gates}, but got {x.size(-1)}."
+        return x.view(
+            x.shape[0], x.shape[1], self.config.num_gates, self.config.num_heads, -1
+        ).permute(1, 0, 2, 3, 4)
 
-    def _get_state(self, input: torch.Tensor, state: torch.Tensor | None) -> torch.Tensor:
+    def _get_state(
+        self, input: torch.Tensor, state: torch.Tensor | None
+    ) -> torch.Tensor:
         B = input.shape[1]
         if state is None:
             state = torch.zeros(
@@ -119,7 +141,12 @@ class sLSTMCell(nn.Module):
         return state
 
     def _permute_output(self, output: torch.Tensor) -> torch.Tensor:
-        output = output.view(output.shape[0], output.shape[1], self.config.num_heads, self.config.head_dim)
+        output = output.view(
+            output.shape[0],
+            output.shape[1],
+            self.config.num_heads,
+            self.config.head_dim,
+        )
         return output.permute(1, 2, 0, 3)
 
 
@@ -169,11 +196,17 @@ class sLSTMCellTorch:
         iraw, fraw, zraw, oraw = torch.unbind(raw.view(raw.shape[0], 4, -1), dim=1)
 
         # Equations reference the xlstm paper on page 4: https://arxiv.org/pdf/2405.04517
-        logfplusm = m + F.logsigmoid(torch.clamp(fraw, max=15))  # eq 15 # Clamp to avoid subnomals
-        mnew = torch.where(torch.all(n == 0.0), iraw, torch.max(iraw, logfplusm))  # eq 15
+        logfplusm = m + F.logsigmoid(
+            torch.clamp(fraw, max=15)
+        )  # eq 15 # Clamp to avoid subnomals
+        mnew = torch.where(
+            torch.all(n == 0.0), iraw, torch.max(iraw, logfplusm)
+        )  # eq 15
         ogate = torch.sigmoid(oraw)  # eq 14
         igate = torch.minimum(torch.exp(iraw - mnew), torch.ones_like(iraw))  # eq 16
-        fgate = torch.minimum(torch.exp(logfplusm - mnew), torch.ones_like(iraw))  # eq 17
+        fgate = torch.minimum(
+            torch.exp(logfplusm - mnew), torch.ones_like(iraw)
+        )  # eq 17
         zgate = torch.tanh(zraw)  # eq 11
         cnew = fgate * c + igate * zgate  # eq 8
         nnew = fgate * n + igate  # eq 9

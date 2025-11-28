@@ -17,7 +17,9 @@ class sLSTMBlock(nn.Module):
         self.slstm_layer = sLSTMLayer(config, backend)
         self.norm_ffn = RMSNorm(config.embedding_dim)
 
-        up_proj_dim = round_up_to_next_multiple_of(config.embedding_dim * config.ffn_proj_factor, 64)
+        up_proj_dim = round_up_to_next_multiple_of(
+            config.embedding_dim * config.ffn_proj_factor, 64
+        )
         self.ffn = FeedForward(config.embedding_dim, up_proj_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
